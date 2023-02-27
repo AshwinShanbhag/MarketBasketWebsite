@@ -159,11 +159,11 @@ def upload():
 @login_required
 def results():
     # Read the data from a CSV file
-    file = 'data1.csv'
+    #file = 'uploads/a/data_set1.csv'
     user_email = current_user.email
 
-    #filename = request.args.get('filename')
-    #file = os.path.join(app.config['UPLOAD_FOLDER'], user_email,filename)
+    filename = request.args.get('filename')
+    file = os.path.join(app.config['UPLOAD_FOLDER'], user_email,filename)
 
     df = pd.read_csv(file, header=None)
     df.fillna(0, inplace=True)
