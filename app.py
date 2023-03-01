@@ -5,6 +5,10 @@ from werkzeug.utils import secure_filename
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import pandas as pd
 from apyori import apriori
+import seaborn as sns
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 
 
 app = Flask(__name__)
@@ -219,6 +223,55 @@ def process_data():
             files.append({'name': name, 'url': url})
     return render_template('process_data.html', files=files)
 
+
+@app.route('/display', methods=['POST', 'GET'])
+@login_required
+def display():
+    data = session.get('results', current_user.email)
+    print(data)
+    if data:
+        df = pd.DataFrame(data)
+        pivot = df.pivot_table(index='items', values=['lift'], aggfunc='mean', sort=True)
+
+        # create heatmap
+        sns.heatmap(pivot, cmap="Blues")
+        plt.title("Association Rules Heatmap")
+        plt.savefig('./static/images/heatmap.png')
+        plt.close()
+
+        # create bargraph
+        items = df['items'].apply(lambda x: x).tolist()
+        support = df['support'].tolist()
+        lift = df['lift'].tolist()
+        confidence = df['confidence'].tolist()
+        fig, ax = plt.subplots()
+        ax.bar(items, support, label='Support')
+        ax.bar(items, lift, bottom=support, label='Lift')
+        ax.bar(items, confidence, bottom=[support[i] + lift[i] for i in range(len(support))], label='Confidence')
+        ax.legend()
+        plt.title("Association Rules Bargraph")
+        plt.xticks(rotation=90)
+        plt.savefig('./static/images/bargraph.png')
+        plt.close()
+
+        # Extract the data to plot
+        x = [d['support'] for d in data]
+        y = [d['confidence'] for d in data]
+        s = [d['lift'] * 100 for d in data]  # Scale lift values for size of markers
+
+        # Create the scatter plot
+        plt.scatter(x, y, s=s)
+        plt.xlabel('Support')
+        plt.ylabel('Confidence')
+        plt.title('Association Rules')
+
+        # Save the plot to a file
+        plt.savefig('./static/images/scatterplot.png')
+    else:
+        return redirect(url_for('dashboard'))
+
+    return render_template('display.html', heatmap="heatmap.png", bargraph="bargraph.png",
+                           scatterplot="scatterplot.png")
 
 
 if __name__ == '__main__':
