@@ -1,13 +1,12 @@
 import os
 import csv
-from flask import Flask, request, redirect, url_for, render_template, flash, Response
+from flask import Flask, request, redirect, url_for, render_template, flash, Response, session, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import pandas as pd
 from apyori import apriori
+import numpy as np
 import seaborn as sns
-import matplotlib
-matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 
@@ -159,15 +158,17 @@ def upload():
     return render_template('upload.html')
 
 
-@app.route('/results')
-@login_required
-def results():
-    # Read the data from a CSV file
-    #file = 'uploads/a/data_set1.csv'
-    user_email = current_user.email
 
-    filename = request.args.get('filename')
+@app.route('/results/<filename>',methods=['GET','POST'])
+@login_required
+def results(filename):
+    # Read the data from a CSV file
+    #file = 'Market_Basket_Optimisation.csv'
+    #filename = request.args.get('filename')
+    print(filename)
+    user_email = current_user.email
     file = os.path.join(app.config['UPLOAD_FOLDER'], user_email,filename)
+    print(file)
 
     df = pd.read_csv(file, header=None)
     df.fillna(0, inplace=True)
@@ -205,11 +206,22 @@ def results():
     # Search the results based on the 'search' parameter
     if search:
         results = [result for result in results if search.lower() in result['items'].lower()]
-    print(results)
+    #print(results)
+
+    session['results']=results
+
+    filename = 'rules.csv'
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], user_email, filename)
+    with open(filepath, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=['items', 'support', 'confidence', 'lift'])
+        writer.writeheader()
+        writer.writerows(results)
 
 
     # Render the template with the results
-    return render_template('results.html', results=results)
+    return render_template('results.html', results=results,filename=filename)
+
+
 
 @app.route('/process_data')
 def process_data():
@@ -230,6 +242,7 @@ def display():
     data = session.get('results', current_user.email)
     print(data)
     if data:
+
         df = pd.DataFrame(data)
         pivot = df.pivot_table(index='items', values=['lift'], aggfunc='mean', sort=True)
 
@@ -273,6 +286,13 @@ def display():
     return render_template('display.html', heatmap="heatmap.png", bargraph="bargraph.png",
                            scatterplot="scatterplot.png")
 
+@app.route('/download/<filename>')
+def download_file(filename):
+
+
+    return send_from_directory(os.path.join(app.root_path, 'uploads', current_user.email), filename, as_attachment=True)
+
 
 if __name__ == '__main__':
+
     app.run(debug=True)

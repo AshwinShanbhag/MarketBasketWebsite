@@ -28,24 +28,25 @@
       <input type="text" class="form-control ml-2" name="search" id="search" value="{{ request.args.get('search', '') }}">
     </div>
     <button type="submit" class="btn btn-primary ml-4">Filter</button>
-
-
+    <a href="{{ url_for('display') }}" class="btn btn-primary ml-4" >DISPLAY</a>
+    <a href="{{ url_for('download_file', filename='rules.csv') }}" class="btn btn-primary ml-4">
+  Download File
+</a>
 
   </form>
-<a href="{{ url_for('display') }}" class="btn btn-secondary ml-4">Display</a>
 
   <table class="table mt-4">
     <thead>
       <tr>
         <th>Items</th>
         <th>
-          <a href="{{ url_for('results', sortby='support_desc', search=request.args.get('search', '')) }}">Support</a>
+          <a href="{{ url_for('results',filename=filename, sortby='support_desc', search=request.args.get('search', '')) }}">Support</a>
         </th>
         <th>
-          <a href="{{ url_for('results', sortby='confidence_desc', search=request.args.get('search', '')) }}">Confidence</a>
+          <a href="{{ url_for('results',filename=filename, sortby='confidence_desc', search=request.args.get('search', '')) }}">Confidence</a>
         </th>
         <th>
-          <a href="{{ url_for('results', sortby='lift_desc', search=request.args.get('search', '')) }}">Lift</a>
+          <a href="{{ url_for('results',filename=filename, sortby='lift_desc', search=request.args.get('search', '')) }}">Lift</a>
         </th>
       </tr>
     </thead>
